@@ -4,17 +4,17 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const supabase = createClient();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("");
+    setError("");
     setLoading(true);
+
+    const supabase = createClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -22,23 +22,22 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(error.message);
+      setError("E-mail ou mot de passe incorrect.");
       setLoading(false);
       return;
     }
 
-    window.location.href = "/";
+    window.location.href = "/dashboard";
   }
 
   return (
     <main
       style={{
         minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        display: "grid",
+        placeItems: "center",
         padding: "24px",
-        background: "#f8fafc",
+        background: "#f6f8fb",
       }}
     >
       <form
@@ -46,51 +45,69 @@ export default function LoginPage() {
         style={{
           width: "100%",
           maxWidth: "420px",
+          background: "#fff",
           padding: "32px",
           borderRadius: "20px",
-          background: "#ffffff",
-          boxShadow: "0 10px 35px rgba(0,0,0,0.08)",
+          boxShadow: "0 10px 40px rgba(15, 23, 42, 0.08)",
         }}
       >
-        <h1 style={{ marginBottom: "8px" }}>Connexion à MedLib</h1>
+        <p
+          style={{
+            color: "#0f766e",
+            fontWeight: 800,
+            fontSize: "13px",
+          }}
+        >
+          MEDLIB
+        </p>
+
+        <h1 style={{ marginBottom: "8px" }}>
+          Connexion
+        </h1>
 
         <p style={{ color: "#64748b", marginBottom: "24px" }}>
           Accédez à votre bibliothèque médicale.
         </p>
 
-        <label>Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{
-            width: "100%",
-            padding: "12px",
-            margin: "8px 0 18px",
-            border: "1px solid #cbd5e1",
-            borderRadius: "10px",
-          }}
-        />
+        <label>
+          E-mail
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: "13px",
+              marginTop: "7px",
+              marginBottom: "16px",
+              border: "1px solid #dbe3ea",
+              borderRadius: "10px",
+            }}
+          />
+        </label>
 
-        <label>Mot de passe</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{
-            width: "100%",
-            padding: "12px",
-            margin: "8px 0 18px",
-            border: "1px solid #cbd5e1",
-            borderRadius: "10px",
-          }}
-        />
+        <label>
+          Mot de passe
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{
+              width: "100%",
+              padding: "13px",
+              marginTop: "7px",
+              marginBottom: "18px",
+              border: "1px solid #dbe3ea",
+              borderRadius: "10px",
+            }}
+          />
+        </label>
 
-        {message && (
+        {error && (
           <p style={{ color: "#dc2626", marginBottom: "16px" }}>
-            {message}
+            {error}
           </p>
         )}
 
@@ -99,11 +116,12 @@ export default function LoginPage() {
           disabled={loading}
           style={{
             width: "100%",
-            padding: "13px",
-            border: 0,
+            padding: "14px",
+            border: "none",
             borderRadius: "10px",
             background: "#0f766e",
-            color: "#ffffff",
+            color: "#fff",
+            fontWeight: 800,
             cursor: "pointer",
           }}
         >
@@ -112,4 +130,4 @@ export default function LoginPage() {
       </form>
     </main>
   );
-          }
+}
