@@ -93,7 +93,7 @@ export default async function LibraryPage() {
                   <div className="course-content">
 
                     <p className="course-category">
-                      {course.categories?.name ?? "Médecine"}
+                      {course.categories?.[0]?.name ?? "Médecine"}
                     </p>
 
                     <h3>{course.title}</h3>
