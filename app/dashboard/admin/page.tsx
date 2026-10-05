@@ -81,7 +81,7 @@ export default async function AdminPage() {
 
         <section className="admin-actions">
 
-          <Link href="/admin/courses/new" className="admin-action primary">
+          <Link href="/dashboard/admin/courses/new" className="admin-action primary">
             <span>➕</span>
             <div>
               <strong>Ajouter un cours</strong>
