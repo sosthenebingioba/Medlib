@@ -1,223 +1,250 @@
-.new-course-page {
-  min-height: 100vh;
-  background: #f6f8fb;
-  padding: 32px 18px 60px;
-  color: #0f172a;
-}
+"use client";
 
-.new-course-container {
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-}
+import { FormEvent, useState } from "react";
+import Link from "next/link";
+import "./new-course.css";
 
-.new-course-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 28px;
-}
+export default function NewCoursePage() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [author, setAuthor] = useState("");
+  const [level, setLevel] = useState("Tous niveaux");
+  const [category, setCategory] = useState("Anatomie");
+  const [accessType, setAccessType] = useState("premium");
+  const [pages, setPages] = useState("");
+  const [objectives, setObjectives] = useState("");
+  const [status, setStatus] = useState("draft");
 
-.new-course-eyebrow {
-  margin: 0 0 7px;
-  color: #0f766e;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-}
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-.new-course-header h1 {
-  margin: 0 0 8px;
-  font-size: clamp(30px, 5vw, 44px);
-  letter-spacing: -0.03em;
-}
-
-.new-course-header p:not(.new-course-eyebrow) {
-  margin: 0;
-  color: #64748b;
-}
-
-.new-course-back {
-  flex-shrink: 0;
-  padding: 11px 15px;
-  border: 1px solid #dbe3ea;
-  border-radius: 12px;
-  background: #fff;
-  color: #334155;
-  text-decoration: none;
-  font-weight: 800;
-}
-
-.course-form {
-  display: grid;
-  gap: 18px;
-}
-
-.form-card {
-  padding: 24px;
-  background: #fff;
-  border: 1px solid #e6ebf0;
-  border-radius: 20px;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
-}
-
-.form-card-header {
-  margin-bottom: 22px;
-}
-
-.form-card-header h2 {
-  margin: 0 0 6px;
-  font-size: 20px;
-}
-
-.form-card-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-field.full {
-  grid-column: 1 / -1;
-}
-
-.form-field label {
-  font-size: 13px;
-  font-weight: 800;
-  color: #334155;
-}
-
-.form-field input,
-.form-field select,
-.form-field textarea {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #dbe3ea;
-  border-radius: 12px;
-  background: #fff;
-  color: #0f172a;
-  padding: 12px 13px;
-  font: inherit;
-  outline: none;
-}
-
-.form-field textarea {
-  resize: vertical;
-  min-height: 120px;
-  line-height: 1.55;
-}
-
-.form-field input:focus,
-.form-field select:focus,
-.form-field textarea:focus {
-  border-color: #0f766e;
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
-}
-
-.access-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
-.access-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 17px;
-  border: 1px solid #dbe3ea;
-  border-radius: 14px;
-  cursor: pointer;
-}
-
-.access-option.selected {
-  border-color: #0f766e;
-  background: #f0fdfa;
-}
-
-.access-option input {
-  margin-top: 3px;
-}
-
-.access-option strong,
-.access-option small {
-  display: block;
-}
-
-.access-option small {
-  margin-top: 5px;
-  color: #64748b;
-  line-height: 1.4;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.cancel-button,
-.create-button {
-  padding: 13px 18px;
-  border-radius: 12px;
-  font-weight: 800;
-  text-decoration: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.cancel-button {
-  border: 1px solid #dbe3ea;
-  background: #fff;
-  color: #334155;
-}
-
-.create-button {
-  border: 0;
-  background: #0f766e;
-  color: #fff;
-}
-
-@media (max-width: 700px) {
-  .new-course-header {
-    flex-direction: column;
+    alert(
+      "Le formulaire est prêt. La connexion à Supabase sera ajoutée à l'étape suivante."
+    );
   }
 
-  .new-course-back {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-  }
+  return (
+    <main className="new-course-page">
+      <div className="new-course-container">
+        <header className="new-course-header">
+          <div>
+            <p className="new-course-eyebrow">MEDLIB ADMIN</p>
 
-  .form-grid,
-  .access-options {
-    grid-template-columns: 1fr;
-  }
+            <h1>Ajouter un cours</h1>
 
-  .form-field.full {
-    grid-column: auto;
-  }
+            <p>
+              Créez un nouveau contenu médical pour la bibliothèque MedLib.
+            </p>
+          </div>
 
-  .form-actions {
-    flex-direction: column-reverse;
-  }
+          <Link href="/dashboard/admin" className="new-course-back">
+            ← Retour à l'administration
+          </Link>
+        </header>
 
-  .cancel-button,
-  .create-button {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-  }
-}
+        <form onSubmit={handleSubmit} className="course-form">
+          <section className="form-card">
+            <div className="form-card-header">
+              <h2>Informations générales</h2>
+              <p>Les informations principales du cours.</p>
+            </div>
+
+            <div className="form-grid">
+              <div className="form-field full">
+                <label htmlFor="title">Titre du cours *</label>
+
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Ex. Anatomie générale"
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="category">Catégorie *</label>
+
+                <select
+                  id="category"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
+                  <option>Anatomie</option>
+                  <option>Physiologie</option>
+                  <option>Biochimie</option>
+                  <option>Histologie</option>
+                  <option>Pharmacologie</option>
+                  <option>Pathologie</option>
+                  <option>Cardiologie</option>
+                  <option>Pneumologie</option>
+                  <option>Neurologie</option>
+                  <option>Infectiologie</option>
+                  <option>Néphrologie</option>
+                  <option>Pédiatrie</option>
+                  <option>Gynécologie-obstétrique</option>
+                  <option>Chirurgie</option>
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="level">Niveau</label>
+
+                <select
+                  id="level"
+                  value={level}
+                  onChange={(event) => setLevel(event.target.value)}
+                >
+                  <option>Tous niveaux</option>
+                  <option>Débutant</option>
+                  <option>Intermédiaire</option>
+                  <option>Avancé</option>
+                </select>
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="author">Auteur</label>
+
+                <input
+                  id="author"
+                  type="text"
+                  value={author}
+                  onChange={(event) => setAuthor(event.target.value)}
+                  placeholder="Nom de l'auteur"
+                />
+              </div>
+
+              <div className="form-field">
+                <label htmlFor="pages">Nombre de pages</label>
+
+                <input
+                  id="pages"
+                  type="number"
+                  min="0"
+                  value={pages}
+                  onChange={(event) => setPages(event.target.value)}
+                  placeholder="Ex. 120"
+                />
+              </div>
+
+              <div className="form-field full">
+                <label htmlFor="description">Description *</label>
+
+                <textarea
+                  id="description"
+                  rows={5}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Présentez brièvement le contenu et l'intérêt pédagogique de ce cours..."
+                  required
+                />
+              </div>
+
+              <div className="form-field full">
+                <label htmlFor="objectives">
+                  Objectifs pédagogiques
+                </label>
+
+                <textarea
+                  id="objectives"
+                  rows={5}
+                  value={objectives}
+                  onChange={(event) => setObjectives(event.target.value)}
+                  placeholder="Ex. Comprendre l'organisation anatomique du cœur..."
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="form-card">
+            <div className="form-card-header">
+              <h2>Accès au contenu</h2>
+
+              <p>Définissez qui pourra accéder à ce cours.</p>
+            </div>
+
+            <div className="access-options">
+              <label
+                className={`access-option ${
+                  accessType === "free" ? "selected" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="accessType"
+                  value="free"
+                  checked={accessType === "free"}
+                  onChange={(event) => setAccessType(event.target.value)}
+                />
+
+                <span>
+                  <strong>🟢 Gratuit</strong>
+
+                  <small>
+                    Accessible sans abonnement.
+                  </small>
+                </span>
+              </label>
+
+              <label
+                className={`access-option ${
+                  accessType === "premium" ? "selected" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="accessType"
+                  value="premium"
+                  checked={accessType === "premium"}
+                  onChange={(event) => setAccessType(event.target.value)}
+                />
+
+                <span>
+                  <strong>🔒 Premium</strong>
+
+                  <small>
+                    Accessible uniquement aux abonnés.
+                  </small>
+                </span>
+              </label>
+            </div>
+          </section>
+
+          <section className="form-card">
+            <div className="form-card-header">
+              <h2>Publication</h2>
+
+              <p>Choisissez l'état du cours.</p>
+            </div>
+
+            <div className="form-grid">
+              <div className="form-field">
+                <label htmlFor="status">Statut</label>
+
+                <select
+                  id="status"
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                >
+                  <option value="draft">Brouillon</option>
+                  <option value="published">Publié</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <div className="form-actions">
+            <Link href="/dashboard/admin" className="cancel-button">
+              Annuler
+            </Link>
+
+            <button type="submit" className="create-button">
+              Créer le cours →
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+                }
