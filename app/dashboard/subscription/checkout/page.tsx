@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type PageProps = {
   searchParams: Promise<{
     plan?: string;
@@ -66,7 +68,7 @@ export default async function CheckoutPage({
             marginTop: "10px",
           }}
         >
-          Confirmation de l'abonnement
+          Paiement de votre abonnement
         </h1>
 
         <div
@@ -98,26 +100,44 @@ export default async function CheckoutPage({
             lineHeight: 1.6,
           }}
         >
-          Vous êtes sur le point de souscrire à cet abonnement MedLib.
+          Sélectionnez votre moyen de paiement pour activer votre abonnement
+          MedLib.
         </p>
 
-        <button
-          type="button"
+        <Link
+          href={`/dashboard/subscription/checkout/payment?plan=${params.plan || "monthly"}`}
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             width: "100%",
-            marginTop: "25px",
             minHeight: "52px",
-            border: "none",
+            marginTop: "25px",
             borderRadius: "12px",
             background: "#1557a6",
             color: "#ffffff",
+            textDecoration: "none",
             fontSize: "15px",
             fontWeight: 800,
-            cursor: "pointer",
           }}
         >
           Continuer vers le paiement
-        </button>
+        </Link>
+
+        <Link
+          href="/dashboard/subscription"
+          style={{
+            display: "block",
+            marginTop: "18px",
+            textAlign: "center",
+            color: "#3973b9",
+            textDecoration: "none",
+            fontSize: "14px",
+            fontWeight: 700,
+          }}
+        >
+          ← Retour aux abonnements
+        </Link>
       </div>
     </main>
   );
