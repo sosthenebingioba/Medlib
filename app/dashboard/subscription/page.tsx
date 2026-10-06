@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import "./subscription.css";
 
 export default async function SubscriptionPage() {
+    console.log("MEDLIB SUBSCRIPTION PAGE");
   const supabase = await createClient();
 
   const {
