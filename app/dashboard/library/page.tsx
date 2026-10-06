@@ -114,7 +114,7 @@ export default async function LibraryPage() {
                     </div>
 
                     <Link
-                      href={`/library/${course.slug}`}
+                      href={`/dashboard/library/${course.slug}`}
                       className="course-button"
                     >
                       Voir le cours →
