@@ -18,7 +18,7 @@ export default async function CoursePage({ params }: PageProps) {
   if (!user) {
     redirect("/login");
   }
-
+console.log("MEDLIB COURSE PAGE CHARGÉE", slug);
   const { data: course, error } = await supabase
     .from("courses")
     .select(`
