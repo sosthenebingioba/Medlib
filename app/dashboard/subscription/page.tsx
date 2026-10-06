@@ -134,7 +134,7 @@ export default async function SubscriptionPage() {
             </ul>
 
             <Link
-              href="/dashboard/subscription?plan=monthly"
+              href="/dashboard/subscription/checkout?plan=monthly"
               className="plan-button"
             >
               Choisir ce plan
@@ -182,7 +182,7 @@ export default async function SubscriptionPage() {
             </ul>
 
             <Link
-              href="/dashboard/subscription?plan=semester"
+              href="/dashboard/subscription/checkout?plan=semester"
               className="plan-button"
             >
               Choisir ce plan
@@ -226,7 +226,7 @@ export default async function SubscriptionPage() {
             </ul>
 
             <Link
-              href="/dashboard/subscription?plan=annual"
+              href="/dashboard/subscription/checkout?plan=annual"
               className="plan-button"
             >
               Choisir ce plan
