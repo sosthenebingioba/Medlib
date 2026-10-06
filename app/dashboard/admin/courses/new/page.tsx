@@ -39,15 +39,19 @@ export default function NewCoursePage() {
     const supabase = createClient();
 
     try {
+      // Vérifier la connexion
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        setError("Votre session a expiré. Veuillez vous reconnecter.");
+        setError(
+          "Votre session a expiré. Veuillez vous reconnecter."
+        );
         return;
       }
 
+      // Vérifier le titre
       const slug = createSlug(title);
 
       if (!slug) {
@@ -55,11 +59,32 @@ export default function NewCoursePage() {
         return;
       }
 
-      const { data: categoryData, error: categoryError } = await supabase
-        .from("categories")
-        .select("id")
-        .eq("name", category)
-        .maybeSingle();
+      // Vérifier si le slug existe déjà
+      const { data: existingCourse, error: slugError } =
+        await supabase
+          .from("courses")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+
+      if (slugError) {
+        throw new Error(slugError.message);
+      }
+
+      if (existingCourse) {
+        setError(
+          "Un cours avec ce titre existe déjà. Choisissez un autre titre."
+        );
+        return;
+      }
+
+      // Chercher la catégorie
+      const { data: categoryData, error: categoryError } =
+        await supabase
+          .from("categories")
+          .select("id")
+          .eq("name", category)
+          .maybeSingle();
 
       if (categoryError) {
         throw new Error(categoryError.message);
@@ -72,6 +97,7 @@ export default function NewCoursePage() {
         return;
       }
 
+      // Créer le cours dans Supabase
       const { error: insertError } = await supabase
         .from("courses")
         .insert({
@@ -91,8 +117,12 @@ export default function NewCoursePage() {
         throw new Error(insertError.message);
       }
 
-      setMessage("Cours créé avec succès.");
+      // Succès
+      setMessage(
+        "✓ Cours créé avec succès dans la bibliothèque MedLib."
+      );
 
+      // Réinitialiser le formulaire
       setTitle("");
       setDescription("");
       setAuthor("");
@@ -102,6 +132,7 @@ export default function NewCoursePage() {
       setLevel("Tous niveaux");
       setAccessType("premium");
       setStatus("draft");
+
     } catch (err) {
       setError(
         err instanceof Error
@@ -116,26 +147,37 @@ export default function NewCoursePage() {
   return (
     <main className="new-course-page">
       <div className="new-course-container">
+
         <header className="new-course-header">
           <div>
-            <p className="new-course-eyebrow">MEDLIB ADMIN</p>
+            <p className="new-course-eyebrow">
+              MEDLIB ADMIN
+            </p>
 
             <h1>Ajouter un cours</h1>
 
             <p>
-              Créez un nouveau contenu médical pour la bibliothèque MedLib.
+              Créez un nouveau contenu médical pour la
+              bibliothèque MedLib.
             </p>
           </div>
 
-          <Link href="/dashboard/admin" className="new-course-back">
+          <Link
+            href="/dashboard/admin"
+            className="new-course-back"
+          >
             ← Retour à l'administration
           </Link>
         </header>
 
-        <form onSubmit={handleSubmit} className="course-form">
+        <form
+          onSubmit={handleSubmit}
+          className="course-form"
+        >
+
           {message && (
             <div className="form-message success">
-              ✓ {message}
+              {message}
             </div>
           )}
 
@@ -145,33 +187,51 @@ export default function NewCoursePage() {
             </div>
           )}
 
+          {/* INFORMATIONS GÉNÉRALES */}
+
           <section className="form-card">
+
             <div className="form-card-header">
               <h2>Informations générales</h2>
-              <p>Les informations principales du cours.</p>
+
+              <p>
+                Les informations principales du cours.
+              </p>
             </div>
 
             <div className="form-grid">
+
               <div className="form-field full">
-                <label htmlFor="title">Titre du cours *</label>
+
+                <label htmlFor="title">
+                  Titre du cours *
+                </label>
 
                 <input
                   id="title"
                   type="text"
                   value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  onChange={(event) =>
+                    setTitle(event.target.value)
+                  }
                   placeholder="Ex. Anatomie générale"
                   required
                 />
+
               </div>
 
               <div className="form-field">
-                <label htmlFor="category">Catégorie *</label>
+
+                <label htmlFor="category">
+                  Catégorie *
+                </label>
 
                 <select
                   id="category"
                   value={category}
-                  onChange={(event) => setCategory(event.target.value)}
+                  onChange={(event) =>
+                    setCategory(event.target.value)
+                  }
                 >
                   <option>Anatomie</option>
                   <option>Physiologie</option>
@@ -188,62 +248,88 @@ export default function NewCoursePage() {
                   <option>Gynécologie-obstétrique</option>
                   <option>Chirurgie</option>
                 </select>
+
               </div>
 
               <div className="form-field">
-                <label htmlFor="level">Niveau</label>
+
+                <label htmlFor="level">
+                  Niveau
+                </label>
 
                 <select
                   id="level"
                   value={level}
-                  onChange={(event) => setLevel(event.target.value)}
+                  onChange={(event) =>
+                    setLevel(event.target.value)
+                  }
                 >
                   <option>Tous niveaux</option>
                   <option>Débutant</option>
                   <option>Intermédiaire</option>
                   <option>Avancé</option>
                 </select>
+
               </div>
 
               <div className="form-field">
-                <label htmlFor="author">Auteur</label>
+
+                <label htmlFor="author">
+                  Auteur
+                </label>
 
                 <input
                   id="author"
                   type="text"
                   value={author}
-                  onChange={(event) => setAuthor(event.target.value)}
+                  onChange={(event) =>
+                    setAuthor(event.target.value)
+                  }
                   placeholder="Nom de l'auteur"
                 />
+
               </div>
 
               <div className="form-field">
-                <label htmlFor="pages">Nombre de pages</label>
+
+                <label htmlFor="pages">
+                  Nombre de pages
+                </label>
 
                 <input
                   id="pages"
                   type="number"
                   min="0"
                   value={pages}
-                  onChange={(event) => setPages(event.target.value)}
+                  onChange={(event) =>
+                    setPages(event.target.value)
+                  }
                   placeholder="Ex. 120"
                 />
+
               </div>
 
               <div className="form-field full">
-                <label htmlFor="description">Description *</label>
+
+                <label htmlFor="description">
+                  Description *
+                </label>
 
                 <textarea
                   id="description"
                   rows={5}
                   value={description}
-                  onChange={(event) => setDescription(event.target.value)}
+                  onChange={(event) =>
+                    setDescription(event.target.value)
+                  }
                   placeholder="Présentez brièvement le contenu et l'intérêt pédagogique de ce cours..."
                   required
                 />
+
               </div>
 
               <div className="form-field full">
+
                 <label htmlFor="objectives">
                   Objectifs pédagogiques
                 </label>
@@ -252,90 +338,149 @@ export default function NewCoursePage() {
                   id="objectives"
                   rows={5}
                   value={objectives}
-                  onChange={(event) => setObjectives(event.target.value)}
+                  onChange={(event) =>
+                    setObjectives(event.target.value)
+                  }
                   placeholder="Ex. Comprendre l'organisation anatomique du cœur..."
                 />
+
               </div>
+
             </div>
           </section>
 
+          {/* ACCÈS */}
+
           <section className="form-card">
+
             <div className="form-card-header">
+
               <h2>Accès au contenu</h2>
 
-              <p>Définissez qui pourra accéder à ce cours.</p>
+              <p>
+                Définissez qui pourra accéder à ce cours.
+              </p>
+
             </div>
 
             <div className="access-options">
+
               <label
                 className={`access-option ${
-                  accessType === "free" ? "selected" : ""
+                  accessType === "free"
+                    ? "selected"
+                    : ""
                 }`}
               >
+
                 <input
                   type="radio"
                   name="accessType"
                   value="free"
                   checked={accessType === "free"}
-                  onChange={(event) => setAccessType(event.target.value)}
+                  onChange={(event) =>
+                    setAccessType(event.target.value)
+                  }
                 />
 
                 <span>
-                  <strong>🟢 Gratuit</strong>
+                  <strong>
+                    🟢 Gratuit
+                  </strong>
 
-                  <small>Accessible sans abonnement.</small>
+                  <small>
+                    Accessible sans abonnement.
+                  </small>
                 </span>
+
               </label>
 
               <label
                 className={`access-option ${
-                  accessType === "premium" ? "selected" : ""
+                  accessType === "premium"
+                    ? "selected"
+                    : ""
                 }`}
               >
+
                 <input
                   type="radio"
                   name="accessType"
                   value="premium"
                   checked={accessType === "premium"}
-                  onChange={(event) => setAccessType(event.target.value)}
+                  onChange={(event) =>
+                    setAccessType(event.target.value)
+                  }
                 />
 
                 <span>
-                  <strong>🔒 Premium</strong>
+                  <strong>
+                    🔒 Premium
+                  </strong>
 
                   <small>
                     Accessible uniquement aux abonnés.
                   </small>
                 </span>
+
               </label>
+
             </div>
+
           </section>
 
+          {/* PUBLICATION */}
+
           <section className="form-card">
+
             <div className="form-card-header">
+
               <h2>Publication</h2>
 
-              <p>Choisissez l'état du cours.</p>
+              <p>
+                Choisissez l'état du cours.
+              </p>
+
             </div>
 
             <div className="form-grid">
+
               <div className="form-field">
-                <label htmlFor="status">Statut</label>
+
+                <label htmlFor="status">
+                  Statut
+                </label>
 
                 <select
                   id="status"
                   value={status}
-                  onChange={(event) => setStatus(event.target.value)}
+                  onChange={(event) =>
+                    setStatus(event.target.value)
+                  }
                 >
-                  <option value="draft">Brouillon</option>
-                  <option value="published">Publié</option>
+                  <option value="draft">
+                    Brouillon
+                  </option>
+
+                  <option value="published">
+                    Publié
+                  </option>
                 </select>
+
               </div>
+
             </div>
+
           </section>
 
+          {/* ACTIONS */}
+
           <div className="form-actions">
-            <Link href="/dashboard/admin" className="cancel-button">
+
+            <Link
+              href="/dashboard/admin"
+              className="cancel-button"
+            >
               Annuler
             </Link>
 
@@ -344,11 +489,15 @@ export default function NewCoursePage() {
               className="create-button"
               disabled={loading}
             >
-              {loading ? "Création..." : "Créer le cours →"}
+              {loading
+                ? "Enregistrement..."
+                : "Créer le cours →"}
             </button>
+
           </div>
+
         </form>
       </div>
     </main>
   );
-  }
+          }
