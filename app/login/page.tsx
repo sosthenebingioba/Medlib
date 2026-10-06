@@ -21,9 +21,19 @@ export default function LoginPage() {
   password,
 });
 
-console.log("MEDLIB SESSION APRÈS CONNEXION :", data.session);
+if (error) {
+  setError("E-mail ou mot de passe incorrect.");
+  setLoading(false);
+  return;
+}
 
-    if (error) {
+if (!data.session) {
+  setError("Connexion réussie, mais aucune session n'a été créée.");
+  setLoading(false);
+  return;
+}
+
+window.location.href = "/dashboard";
       setError("E-mail ou mot de passe incorrect.");
       setLoading(false);
       return;
