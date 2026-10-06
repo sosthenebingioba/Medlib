@@ -41,15 +41,15 @@ export default function NewCoursePage() {
     try {
       // Vérifier la connexion
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  data: { session },
+} = await supabase.auth.getSession();
 
-      if (!user) {
-        setError(
-          "Votre session a expiré. Veuillez vous reconnecter."
-        );
-        return;
-      }
+if (!session) {
+  setError(
+    "Votre session a expiré. Veuillez vous reconnecter."
+  );
+  return;
+}
 
       // Vérifier le titre
       const slug = createSlug(title);
