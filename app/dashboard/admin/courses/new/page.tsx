@@ -2,7 +2,17 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import "./new-course.css";
+
+function createSlug(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export default function NewCoursePage() {
   const [title, setTitle] = useState("");
@@ -15,12 +25,92 @@ export default function NewCoursePage() {
   const [objectives, setObjectives] = useState("");
   const [status, setStatus] = useState("draft");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    alert(
-      "Le formulaire est prêt. La connexion à Supabase sera ajoutée à l'étape suivante."
-    );
+    setLoading(true);
+    setMessage("");
+    setError("");
+
+    const supabase = createClient();
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("Votre session a expiré. Veuillez vous reconnecter.");
+        return;
+      }
+
+      const slug = createSlug(title);
+
+      if (!slug) {
+        setError("Veuillez saisir un titre valide.");
+        return;
+      }
+
+      const { data: categoryData, error: categoryError } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", category)
+        .maybeSingle();
+
+      if (categoryError) {
+        throw new Error(categoryError.message);
+      }
+
+      if (!categoryData) {
+        setError(
+          `La catégorie "${category}" n'existe pas encore dans MedLib.`
+        );
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from("courses")
+        .insert({
+          title,
+          slug,
+          description,
+          objectives,
+          author,
+          level,
+          pages_count: pages ? Number(pages) : 0,
+          category_id: categoryData.id,
+          access_type: accessType,
+          status,
+        });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      setMessage("Cours créé avec succès.");
+
+      setTitle("");
+      setDescription("");
+      setAuthor("");
+      setPages("");
+      setObjectives("");
+      setCategory("Anatomie");
+      setLevel("Tous niveaux");
+      setAccessType("premium");
+      setStatus("draft");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur est survenue lors de la création du cours."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -43,6 +133,18 @@ export default function NewCoursePage() {
         </header>
 
         <form onSubmit={handleSubmit} className="course-form">
+          {message && (
+            <div className="form-message success">
+              ✓ {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="form-message error">
+              ⚠ {error}
+            </div>
+          )}
+
           <section className="form-card">
             <div className="form-card-header">
               <h2>Informations générales</h2>
@@ -181,9 +283,7 @@ export default function NewCoursePage() {
                 <span>
                   <strong>🟢 Gratuit</strong>
 
-                  <small>
-                    Accessible sans abonnement.
-                  </small>
+                  <small>Accessible sans abonnement.</small>
                 </span>
               </label>
 
@@ -239,12 +339,16 @@ export default function NewCoursePage() {
               Annuler
             </Link>
 
-            <button type="submit" className="create-button">
-              Créer le cours →
+            <button
+              type="submit"
+              className="create-button"
+              disabled={loading}
+            >
+              {loading ? "Création..." : "Créer le cours →"}
             </button>
           </div>
         </form>
       </div>
     </main>
   );
-                }
+  }
