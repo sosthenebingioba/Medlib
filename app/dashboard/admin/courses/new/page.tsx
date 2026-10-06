@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import "./new-course.css";
@@ -14,6 +14,13 @@ function createSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function createSafeFileName(fileName: string) {
+  return fileName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "-");
+}
+
 export default function NewCoursePage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -25,9 +32,41 @@ export default function NewCoursePage() {
   const [objectives, setObjectives] = useState("");
   const [status, setStatus] = useState("draft");
 
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  function handlePdfChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+
+    setError("");
+    setMessage("");
+
+    if (!file) {
+      setPdfFile(null);
+      return;
+    }
+
+    if (file.type !== "application/pdf") {
+      setPdfFile(null);
+      event.target.value = "";
+      setError("Veuillez sélectionner uniquement un fichier PDF.");
+      return;
+    }
+
+    const maxSize = 50 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setPdfFile(null);
+      event.target.value = "";
+      setError("Le PDF ne doit pas dépasser 50 Mo.");
+      return;
+    }
+
+    setPdfFile(file);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,19 +78,19 @@ export default function NewCoursePage() {
     const supabase = createClient();
 
     try {
-      // Vérifier la connexion
+      // 1. Vérifier la session
       const {
-  data: { session },
-} = await supabase.auth.getSession();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-if (!session) {
-  setError(
-    "Votre session a expiré. Veuillez vous reconnecter."
-  );
-  return;
-}
+      if (!session) {
+        setError(
+          "Votre session a expiré. Veuillez vous reconnecter."
+        );
+        return;
+      }
 
-      // Vérifier le titre
+      // 2. Vérifier le titre
       const slug = createSlug(title);
 
       if (!slug) {
@@ -59,7 +98,18 @@ if (!session) {
         return;
       }
 
-      // Vérifier si le slug existe déjà
+      // 3. Vérifier le PDF
+      if (!pdfFile) {
+        setError("Veuillez sélectionner le PDF du cours.");
+        return;
+      }
+
+      if (pdfFile.type !== "application/pdf") {
+        setError("Le document doit être au format PDF.");
+        return;
+      }
+
+      // 4. Vérifier si le slug existe déjà
       const { data: existingCourse, error: slugError } =
         await supabase
           .from("courses")
@@ -78,7 +128,7 @@ if (!session) {
         return;
       }
 
-      // Chercher la catégorie
+      // 5. Chercher la catégorie
       const { data: categoryData, error: categoryError } =
         await supabase
           .from("categories")
@@ -97,32 +147,96 @@ if (!session) {
         return;
       }
 
-      // Créer le cours dans Supabase
-      const { error: insertError } = await supabase
-        .from("courses")
-        .insert({
-          title,
-          slug,
-          description,
-          objectives,
-          author,
-          level,
-          pages_count: pages ? Number(pages) : 0,
-          category_id: categoryData.id,
-          access_type: accessType,
-          status,
-        });
+      // 6. Créer le cours
+      const { data: courseData, error: insertError } =
+        await supabase
+          .from("courses")
+          .insert({
+            title,
+            slug,
+            description,
+            objectives,
+            author,
+            level,
+            pages_count: pages ? Number(pages) : 0,
+            category_id: categoryData.id,
+            access_type: accessType,
+            status,
+          })
+          .select("id")
+          .single();
 
       if (insertError) {
         throw new Error(insertError.message);
       }
 
-      // Succès
+      if (!courseData) {
+        throw new Error(
+          "Le cours a été créé mais son identifiant n'a pas été récupéré."
+        );
+      }
+
+      // 7. Préparer le nom du fichier
+      const safeFileName = createSafeFileName(pdfFile.name);
+
+      const storageKey =
+        `${session.user.id}/${courseData.id}/${Date.now()}-${safeFileName}`;
+
+      // 8. Envoyer le PDF dans Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("course-pdfs")
+        .upload(storageKey, pdfFile, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        // Si l'upload échoue, on tente de supprimer le cours créé.
+        await supabase
+          .from("courses")
+          .delete()
+          .eq("id", courseData.id);
+
+        throw new Error(
+          `Le PDF n'a pas pu être envoyé : ${uploadError.message}`
+        );
+      }
+
+      // 9. Enregistrer le document dans course_documents
+      const { error: documentError } = await supabase
+        .from("course_documents")
+        .insert({
+          course_id: courseData.id,
+          storage_key: storageKey,
+          file_name: pdfFile.name,
+          file_size: pdfFile.size,
+          mime_type: "application/pdf",
+          version: 1,
+        });
+
+      if (documentError) {
+        // Si l'enregistrement échoue, supprimer le PDF.
+        await supabase.storage
+          .from("course-pdfs")
+          .remove([storageKey]);
+
+        // Puis supprimer le cours.
+        await supabase
+          .from("courses")
+          .delete()
+          .eq("id", courseData.id);
+
+        throw new Error(
+          `Le PDF a été envoyé mais n'a pas pu être associé au cours : ${documentError.message}`
+        );
+      }
+
+      // 10. Succès
       setMessage(
-        "✓ Cours créé avec succès dans la bibliothèque MedLib."
+        "✓ Cours et PDF enregistrés avec succès dans MedLib."
       );
 
-      // Réinitialiser le formulaire
+      // 11. Réinitialiser le formulaire
       setTitle("");
       setDescription("");
       setAuthor("");
@@ -132,7 +246,15 @@ if (!session) {
       setLevel("Tous niveaux");
       setAccessType("premium");
       setStatus("draft");
+      setPdfFile(null);
 
+      const fileInput = document.getElementById(
+        "pdf"
+      ) as HTMLInputElement | null;
+
+      if (fileInput) {
+        fileInput.value = "";
+      }
     } catch (err) {
       setError(
         err instanceof Error
@@ -202,7 +324,6 @@ if (!session) {
             <div className="form-grid">
 
               <div className="form-field full">
-
                 <label htmlFor="title">
                   Titre du cours *
                 </label>
@@ -217,11 +338,9 @@ if (!session) {
                   placeholder="Ex. Anatomie générale"
                   required
                 />
-
               </div>
 
               <div className="form-field">
-
                 <label htmlFor="category">
                   Catégorie *
                 </label>
@@ -248,11 +367,9 @@ if (!session) {
                   <option>Gynécologie-obstétrique</option>
                   <option>Chirurgie</option>
                 </select>
-
               </div>
 
               <div className="form-field">
-
                 <label htmlFor="level">
                   Niveau
                 </label>
@@ -269,11 +386,9 @@ if (!session) {
                   <option>Intermédiaire</option>
                   <option>Avancé</option>
                 </select>
-
               </div>
 
               <div className="form-field">
-
                 <label htmlFor="author">
                   Auteur
                 </label>
@@ -287,11 +402,9 @@ if (!session) {
                   }
                   placeholder="Nom de l'auteur"
                 />
-
               </div>
 
               <div className="form-field">
-
                 <label htmlFor="pages">
                   Nombre de pages
                 </label>
@@ -306,11 +419,9 @@ if (!session) {
                   }
                   placeholder="Ex. 120"
                 />
-
               </div>
 
               <div className="form-field full">
-
                 <label htmlFor="description">
                   Description *
                 </label>
@@ -325,11 +436,9 @@ if (!session) {
                   placeholder="Présentez brièvement le contenu et l'intérêt pédagogique de ce cours..."
                   required
                 />
-
               </div>
 
               <div className="form-field full">
-
                 <label htmlFor="objectives">
                   Objectifs pédagogiques
                 </label>
@@ -341,10 +450,64 @@ if (!session) {
                   onChange={(event) =>
                     setObjectives(event.target.value)
                   }
-                  placeholder="Ex. Comprendre l'organisation anatomique du cœur..."
+                  placeholder="Ex. Comprendre les principales fonctions du sang..."
                 />
-
               </div>
+
+            </div>
+          </section>
+
+          {/* DOCUMENT PDF */}
+
+          <section className="form-card">
+
+            <div className="form-card-header">
+              <h2>Document du cours</h2>
+
+              <p>
+                Importez le PDF qui sera associé à ce cours.
+              </p>
+            </div>
+
+            <div className="form-field full">
+
+              <label htmlFor="pdf">
+                Fichier PDF *
+              </label>
+
+              <input
+                id="pdf"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={handlePdfChange}
+                required
+              />
+
+              <small>
+                Format accepté : PDF — taille maximale : 50 Mo.
+              </small>
+
+              {pdfFile && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "12px 14px",
+                    borderRadius: "12px",
+                    background: "#ecfdf5",
+                    border: "1px solid #a7f3d0",
+                  }}
+                >
+                  <strong>
+                    📄 {pdfFile.name}
+                  </strong>
+
+                  <br />
+
+                  <small>
+                    {(pdfFile.size / (1024 * 1024)).toFixed(2)} Mo
+                  </small>
+                </div>
+              )}
 
             </div>
           </section>
@@ -354,13 +517,11 @@ if (!session) {
           <section className="form-card">
 
             <div className="form-card-header">
-
               <h2>Accès au contenu</h2>
 
               <p>
                 Définissez qui pourra accéder à ce cours.
               </p>
-
             </div>
 
             <div className="access-options">
@@ -372,7 +533,6 @@ if (!session) {
                     : ""
                 }`}
               >
-
                 <input
                   type="radio"
                   name="accessType"
@@ -384,15 +544,12 @@ if (!session) {
                 />
 
                 <span>
-                  <strong>
-                    🟢 Gratuit
-                  </strong>
+                  <strong>🟢 Gratuit</strong>
 
                   <small>
                     Accessible sans abonnement.
                   </small>
                 </span>
-
               </label>
 
               <label
@@ -402,7 +559,6 @@ if (!session) {
                     : ""
                 }`}
               >
-
                 <input
                   type="radio"
                   name="accessType"
@@ -414,19 +570,15 @@ if (!session) {
                 />
 
                 <span>
-                  <strong>
-                    🔒 Premium
-                  </strong>
+                  <strong>🔒 Premium</strong>
 
                   <small>
                     Accessible uniquement aux abonnés.
                   </small>
                 </span>
-
               </label>
 
             </div>
-
           </section>
 
           {/* PUBLICATION */}
@@ -434,13 +586,11 @@ if (!session) {
           <section className="form-card">
 
             <div className="form-card-header">
-
               <h2>Publication</h2>
 
               <p>
                 Choisissez l'état du cours.
               </p>
-
             </div>
 
             <div className="form-grid">
@@ -470,7 +620,6 @@ if (!session) {
               </div>
 
             </div>
-
           </section>
 
           {/* ACTIONS */}
@@ -490,7 +639,7 @@ if (!session) {
               disabled={loading}
             >
               {loading
-                ? "Enregistrement..."
+                ? "Enregistrement du cours et du PDF..."
                 : "Créer le cours →"}
             </button>
 
@@ -500,4 +649,4 @@ if (!session) {
       </div>
     </main>
   );
-          }
+                              }
