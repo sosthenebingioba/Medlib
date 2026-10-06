@@ -11,30 +11,25 @@ export default function LoginPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     setError("");
     setLoading(true);
 
     const supabase = createClient();
 
     const { data, error } = await supabase.auth.signInWithPassword({
-  email,
-  password,
-});
+      email,
+      password,
+    });
 
-if (error) {
-  setError("E-mail ou mot de passe incorrect.");
-  setLoading(false);
-  return;
-}
-
-if (!data.session) {
-  setError("Connexion réussie, mais aucune session n'a été créée.");
-  setLoading(false);
-  return;
-}
-
-window.location.href = "/dashboard";
+    if (error) {
       setError("E-mail ou mot de passe incorrect.");
+      setLoading(false);
+      return;
+    }
+
+    if (!data.session) {
+      setError("Connexion réussie, mais aucune session n'a été créée.");
       setLoading(false);
       return;
     }
@@ -77,12 +72,18 @@ window.location.href = "/dashboard";
           Connexion
         </h1>
 
-        <p style={{ color: "#64748b", marginBottom: "24px" }}>
+        <p
+          style={{
+            color: "#64748b",
+            marginBottom: "24px",
+          }}
+        >
           Accédez à votre bibliothèque médicale.
         </p>
 
         <label>
           E-mail
+
           <input
             type="email"
             value={email}
@@ -101,6 +102,7 @@ window.location.href = "/dashboard";
 
         <label>
           Mot de passe
+
           <input
             type="password"
             value={password}
@@ -118,7 +120,12 @@ window.location.href = "/dashboard";
         </label>
 
         {error && (
-          <p style={{ color: "#dc2626", marginBottom: "16px" }}>
+          <p
+            style={{
+              color: "#dc2626",
+              marginBottom: "16px",
+            }}
+          >
             {error}
           </p>
         )}
