@@ -16,10 +16,12 @@ export default function LoginPage() {
 
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({
+  email,
+  password,
+});
+
+console.log("MEDLIB SESSION APRÈS CONNEXION :", data.session);
 
     if (error) {
       setError("E-mail ou mot de passe incorrect.");
