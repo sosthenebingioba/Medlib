@@ -1,34 +1,10 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-
-type PageProps = {
-  searchParams: Promise<{
-    plan?: string;
-  }>;
-};
-
-export default async function CheckoutPage({
-  searchParams,
-}: PageProps) {
-  const { plan } = await searchParams;
-
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
+export default function CheckoutPage() {
   return (
     <main
       style={{
         minHeight: "100vh",
         background: "#f5f7fb",
         padding: "40px 20px",
-        color: "#10284a",
       }}
     >
       <div
@@ -39,41 +15,27 @@ export default async function CheckoutPage({
           padding: "40px",
           borderRadius: "20px",
           textAlign: "center",
+          color: "#10284a",
         }}
       >
         <p
           style={{
             color: "#3973b9",
             fontWeight: 800,
-            letterSpacing: ".1em",
+            letterSpacing: "0.1em",
           }}
         >
           MEDLIB PREMIUM
         </p>
 
-        <h1>TEST DE CONNEXION</h1>
+        <h1>Confirmation de l'abonnement</h1>
 
-        <p style={{ marginTop: "20px" }}>
-          Connexion Supabase réussie.
+        <p style={{ marginTop: "20px", color: "#667085" }}>
+          La page de paiement MedLib fonctionne.
         </p>
 
         <p style={{ marginTop: "15px", color: "#667085" }}>
-          Utilisateur connecté :
-        </p>
-
-        <p
-          style={{
-            marginTop: "8px",
-            fontWeight: 700,
-            color: "#1557a6",
-          }}
-        >
-          {user.email}
-        </p>
-
-        <p style={{ marginTop: "20px", color: "#667085" }}>
-          Formule demandée :{" "}
-          <strong>{plan || "aucune"}</strong>
+          Formule sélectionnée : <strong>Mensuel</strong>
         </p>
       </div>
     </main>
