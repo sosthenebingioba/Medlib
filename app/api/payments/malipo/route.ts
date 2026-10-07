@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const planCode = body.plan as keyof typeof PLAN_MAP;
+    const paymentMethod = body.paymentMethod as
+      | "mobile_money"
+      | "card";
+
     const networkCode = body.network as keyof typeof NETWORKS;
     const phone = String(body.phone || "").trim();
 
@@ -41,18 +45,40 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!NETWORKS[networkCode]) {
+    if (
+      paymentMethod !== "mobile_money" &&
+      paymentMethod !== "card"
+    ) {
       return NextResponse.json(
-        { error: "Moyen de paiement invalide." },
+        { error: "Méthode de paiement invalide." },
         { status: 400 }
       );
     }
 
-    if (!phone) {
-      return NextResponse.json(
-        { error: "Numéro de téléphone requis." },
-        { status: 400 }
-      );
+    if (paymentMethod === "mobile_money") {
+      if (!NETWORKS[networkCode]) {
+        return NextResponse.json(
+          { error: "Moyen de paiement invalide." },
+          { status: 400 }
+        );
+      }
+
+      if (!phone) {
+        return NextResponse.json(
+          { error: "Numéro de téléphone requis." },
+          { status: 400 }
+        );
+      }
+
+      if (!phone.startsWith("+243")) {
+        return NextResponse.json(
+          {
+            error:
+              "Veuillez utiliser le format international, par exemple : +243812345678.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const { data: plan, error: planError } = await supabase
@@ -77,7 +103,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const amountInCents = Math.round(Number(plan.price) * 100);
+    const amount =
+      paymentMethod === "card"
+        ? Math.round(Number(plan.price))
+        : Math.round(Number(plan.price) * 100);
+
+    const paymentBody: Record<string, unknown> = {
+      amount,
+      currency: "USD",
+      payment_method: paymentMethod,
+      description: `Abonnement MedLib - ${plan.name}`,
+      metadata: {
+        user_id: user.id,
+        plan_id: plan.id,
+        plan_code: planCode,
+      },
+    };
+
+    if (paymentMethod === "mobile_money") {
+      paymentBody.phone = phone;
+      paymentBody.network = NETWORKS[networkCode];
+    }
 
     const response = await fetch(
       "https://api.malipo.dev/v1/charges",
@@ -88,18 +134,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
           "Idempotency-Key": `medlib-${user.id}-${plan.id}-${Date.now()}`,
         },
-        body: JSON.stringify({
-          amount: amountInCents,
-          currency: "USD",
-          phone,
-          network: NETWORKS[networkCode],
-          description: `Abonnement MedLib - ${plan.name}`,
-          metadata: {
-            user_id: user.id,
-            plan_id: plan.id,
-            plan_code: planCode,
-          },
-        }),
+        body: JSON.stringify(paymentBody),
       }
     );
 
@@ -126,9 +161,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Une erreur est survenue lors de l'initialisation du paiement.",
+        error:
+          "Une erreur est survenue lors de l'initialisation du paiement.",
       },
       { status: 500 }
     );
   }
-      }
+  }
