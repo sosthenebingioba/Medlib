@@ -1,3 +1,4 @@
+import Link from "next/link";
 import "./dashboard.css";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, status")
+    .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -59,7 +60,9 @@ export default async function DashboardPage() {
         <header className="dashboard-header">
           <div>
             <p className="eyebrow">MEDLIB</p>
+
             <h1>Bonjour, {fullName} 👋</h1>
+
             <p className="dashboard-subtitle">
               Bienvenue dans votre espace étudiant.
             </p>
@@ -71,10 +74,14 @@ export default async function DashboardPage() {
         <section className="dashboard-grid">
           <article className="dashboard-card dashboard-card-main">
             <div>
-              <span className="card-label">Mon abonnement</span>
+              <span className="card-label">
+                Mon abonnement
+              </span>
 
               <h2>
-                {isActive ? planName : "Aucun abonnement actif"}
+                {isActive
+                  ? planName
+                  : "Aucun abonnement actif"}
               </h2>
 
               <p>
@@ -103,17 +110,30 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">📚</span>
+
             <h3>Bibliothèque</h3>
-            <p>Explorez les cours médicaux disponibles.</p>
-            <a href="/" className="dashboard-link">
+
+            <p>
+              Explorez les cours médicaux disponibles.
+            </p>
+
+            <Link
+              href="/dashboard/library"
+              className="dashboard-link"
+            >
               Voir la bibliothèque →
-            </a>
+            </Link>
           </article>
 
           <article className="dashboard-card">
             <span className="card-icon">❤️</span>
+
             <h3>Favoris</h3>
-            <p>Retrouvez vos cours enregistrés.</p>
+
+            <p>
+              Retrouvez vos cours enregistrés.
+            </p>
+
             <span className="dashboard-link muted">
               Bientôt disponible
             </span>
@@ -121,8 +141,13 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">🕘</span>
+
             <h3>Historique</h3>
-            <p>Reprenez vos dernières lectures.</p>
+
+            <p>
+              Reprenez vos dernières lectures.
+            </p>
+
             <span className="dashboard-link muted">
               Bientôt disponible
             </span>
@@ -130,13 +155,13 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">👤</span>
+
             <h3>Mon profil</h3>
+
             <p>{user.email}</p>
+
             <span className="dashboard-link muted">
-              Statut :{" "}
-              {profile?.status === "active"
-                ? "Actif"
-                : profile?.status || "Actif"}
+              Statut : Actif
             </span>
           </article>
         </section>
@@ -144,7 +169,9 @@ export default async function DashboardPage() {
         {!isActive && (
           <section className="upgrade-card">
             <div>
-              <span className="eyebrow">MEDLIB PREMIUM</span>
+              <span className="eyebrow">
+                MEDLIB PREMIUM
+              </span>
 
               <h2>
                 Accédez à toute la bibliothèque médicale
@@ -156,12 +183,15 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <a href="/" className="primary-button">
+            <Link
+              href="/dashboard/subscription"
+              className="primary-button"
+            >
               Voir les abonnements
-            </a>
+            </Link>
           </section>
         )}
       </div>
     </main>
   );
-                    }
+}
