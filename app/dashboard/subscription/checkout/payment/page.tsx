@@ -42,6 +42,7 @@ const networks = [
       "https://www.digicard.co.tz/images/payments/mpesa.png",
   },
 ];
+
 function PaymentContent() {
   const searchParams = useSearchParams();
 
@@ -50,67 +51,141 @@ function PaymentContent() {
   const selectedPlan =
     plans[planCode as keyof typeof plans] || plans.monthly;
 
+  const [paymentMethod, setPaymentMethod] = useState<
+    "mobile_money" | "card"
+  >("mobile_money");
+
   const [network, setNetwork] = useState("");
+
   const [phone, setPhone] = useState("");
+
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
+
   const [success, setSuccess] = useState(false);
+
   const [chargeId, setChargeId] = useState("");
 
-  async function handlePayment(event: FormEvent<HTMLFormElement>) {
+  async function handlePayment(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError("");
     setSuccess(false);
     setChargeId("");
 
-    if (!network) {
-      setError("Veuillez sélectionner un moyen de paiement.");
-      return;
-    }
+    if (paymentMethod === "mobile_money") {
+      if (!network) {
+        setError(
+          "Veuillez sélectionner un moyen de paiement."
+        );
+        return;
+      }
 
-    if (!phone.trim()) {
-      setError("Veuillez saisir votre numéro de téléphone.");
-      return;
-    }
+      if (!phone.trim()) {
+        setError(
+          "Veuillez saisir votre numéro de téléphone."
+        );
+        return;
+      }
 
-    if (!phone.startsWith("+243")) {
-      setError(
-        "Veuillez utiliser le format international, par exemple : +243812345678."
-      );
-      return;
+      if (!phone.startsWith("+243")) {
+        setError(
+          "Veuillez utiliser le format international, par exemple : +243812345678."
+        );
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/payments/malipo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          plan: planCode,
-          network,
-          phone: phone.trim(),
-        }),
-      });
+      const response = await fetch(
+        "/api/payments/malipo",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            plan: planCode,
+            paymentMethod,
+            network:
+              paymentMethod === "mobile_money"
+                ? network
+                : undefined,
+            phone:
+              paymentMethod === "mobile_money"
+                ? phone.trim()
+                : undefined,
+          }),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result?.error || "Impossible d'initialiser le paiement."
+          result?.error ||
+            "Impossible d'initialiser le paiement."
         );
       }
 
+      const charge =
+        result?.charge ||
+        result?.charge?.data ||
+        result;
+
       const id =
-        result?.charge?.id ||
-        result?.charge?.data?.id ||
-        result?.charge?.charge_id ||
+        charge?.id ||
+        charge?.charge_id ||
         "";
 
       setChargeId(id);
+
+      if (paymentMethod === "card") {
+        const nextAction = charge?.next_action;
+
+        const paymentUrl =
+          nextAction?.payment_url;
+
+        const params =
+          nextAction?.params;
+
+        if (!paymentUrl || !params) {
+          throw new Error(
+            "La page sécurisée de paiement par carte n'a pas été générée."
+          );
+        }
+
+        const form =
+          document.createElement("form");
+
+        form.method = "POST";
+        form.action = paymentUrl;
+
+        Object.entries(params).forEach(
+          ([key, value]) => {
+            const input =
+              document.createElement("input");
+
+            input.type = "hidden";
+            input.name = key;
+            input.value = String(value);
+
+            form.appendChild(input);
+          }
+        );
+
+        document.body.appendChild(form);
+
+        form.submit();
+
+        return;
+      }
+
       setSuccess(true);
     } catch (err) {
       setError(
@@ -133,32 +208,37 @@ function PaymentContent() {
     >
       <div
         style={{
-          maxWidth: "720px",
+          maxWidth: "680px",
           margin: "0 auto",
           background: "#ffffff",
-          padding: "40px",
-          borderRadius: "20px",
-          color: "#10284a",
-          boxShadow: "0 10px 30px rgba(25,45,80,0.08)",
+          borderRadius: "24px",
+          padding: "32px",
+          boxShadow:
+            "0 15px 45px rgba(15, 23, 42, 0.08)",
         }}
       >
-        <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "30px",
+          }}
+        >
           <p
             style={{
-              color: "#3973b9",
+              color: "#0f766e",
               fontWeight: 800,
-              letterSpacing: "0.1em",
-              margin: 0,
+              letterSpacing: "2px",
+              marginBottom: "8px",
             }}
           >
-            MEDLIB PREMIUM
+            MEDLIB
           </p>
 
           <h1
             style={{
-              marginTop: "10px",
-              marginBottom: "10px",
-              fontSize: "28px",
+              color: "#0f172a",
+              fontSize: "32px",
+              marginBottom: "8px",
             }}
           >
             Paiement sécurisé
@@ -166,299 +246,394 @@ function PaymentContent() {
 
           <p
             style={{
-              color: "#667085",
+              color: "#64748b",
               margin: 0,
-              lineHeight: 1.6,
             }}
           >
-            Activez votre abonnement MedLib en quelques secondes.
+            Activez votre abonnement MedLib
+            en quelques secondes.
           </p>
         </div>
 
-        {/* RÉCAPITULATIF */}
         <div
           style={{
-            marginTop: "30px",
-            padding: "22px",
-            background: "#f5f7fb",
-            borderRadius: "15px",
+            background: "#f1f5f9",
+            borderRadius: "16px",
+            padding: "20px",
+            marginBottom: "30px",
           }}
         >
-          <p style={{ margin: 0 }}>
-            <strong>Formule :</strong> {selectedPlan.name}
+          <p>
+            <strong>Formule :</strong>{" "}
+            {selectedPlan.name}
           </p>
 
-          <p style={{ marginTop: "10px" }}>
-            <strong>Montant :</strong> ${selectedPlan.price}
+          <p>
+            <strong>Montant :</strong> $
+            {selectedPlan.price}
           </p>
 
-          <p style={{ marginTop: "10px", marginBottom: 0 }}>
-            <strong>Durée :</strong> {selectedPlan.duration}
+          <p
+            style={{
+              marginBottom: 0,
+            }}
+          >
+            <strong>Durée :</strong>{" "}
+            {selectedPlan.duration}
           </p>
         </div>
 
-        {!success ? (
-          <form onSubmit={handlePayment}>
-            {/* MOYENS DE PAIEMENT */}
-            <div style={{ marginTop: "30px" }}>
+        <form onSubmit={handlePayment}>
+          <h2
+            style={{
+              fontSize: "18px",
+              color: "#17345f",
+              marginBottom: "16px",
+            }}
+          >
+            1. Choisissez votre moyen de paiement
+          </h2>
+
+          <div
+            style={{
+              display: "grid",
+              gap: "12px",
+              marginBottom: "30px",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setPaymentMethod("mobile_money")
+              }
+              style={{
+                width: "100%",
+                padding: "18px",
+                borderRadius: "14px",
+                border:
+                  paymentMethod === "mobile_money"
+                    ? "2px solid #1760b8"
+                    : "1px solid #d7deea",
+                background:
+                  paymentMethod === "mobile_money"
+                    ? "#eff6ff"
+                    : "#ffffff",
+                color: "#17345f",
+                fontWeight: 700,
+                textAlign: "left",
+                cursor: "pointer",
+              }}
+            >
+              📱 Mobile Money
+
+              <span
+                style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  marginTop: "5px",
+                }}
+              >
+                Orange Money · Airtel Money · M-Pesa
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setPaymentMethod("card")
+              }
+              style={{
+                width: "100%",
+                padding: "18px",
+                borderRadius: "14px",
+                border:
+                  paymentMethod === "card"
+                    ? "2px solid #1760b8"
+                    : "1px solid #d7deea",
+                background:
+                  paymentMethod === "card"
+                    ? "#eff6ff"
+                    : "#ffffff",
+                color: "#17345f",
+                fontWeight: 700,
+                textAlign: "left",
+                cursor: "pointer",
+              }}
+            >
+              💳 Visa / Carte bancaire
+
+              <span
+                style={{
+                  display: "block",
+                  color: "#64748b",
+                  fontSize: "13px",
+                  marginTop: "5px",
+                }}
+              >
+                Paiement sécurisé par carte
+              </span>
+            </button>
+          </div>
+
+          {paymentMethod === "mobile_money" && (
+            <>
               <h2
                 style={{
                   fontSize: "18px",
-                  marginBottom: "15px",
+                  color: "#17345f",
+                  marginBottom: "16px",
                 }}
               >
-                1. Choisissez votre moyen de paiement
+                2. Choisissez votre opérateur
               </h2>
 
               <div
                 style={{
                   display: "grid",
                   gap: "12px",
+                  marginBottom: "24px",
                 }}
               >
-                {networks.map((item) => {
-                  const selected = network === item.id;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setNetwork(item.id)}
+                {networks.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() =>
+                      setNetwork(item.id)
+                    }
+                    style={{
+                      width: "100%",
+                      minHeight: "74px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "18px",
+                      padding: "12px 18px",
+                      borderRadius: "14px",
+                      border:
+                        network === item.id
+                          ? "2px solid #1760b8"
+                          : "1px solid #d7deea",
+                      background:
+                        network === item.id
+                          ? "#eff6ff"
+                          : "#ffffff",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <img
+                      src={item.logo}
+                      alt={item.name}
                       style={{
-                        width: "100%",
-                        minHeight: "76px",
-                        padding: "10px 18px",
-                        borderRadius: "14px",
-                        border: selected
-                          ? "2px solid #1557a6"
-                          : "1px solid #d9e1ec",
-                        background: selected ? "#eef5ff" : "#ffffff",
-                        color: "#10284a",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "18px",
-                        fontSize: "15px",
+                        width: "105px",
+                        height: "42px",
+                        objectFit: "contain",
+                      }}
+                    />
+
+                    <span
+                      style={{
                         fontWeight: 700,
-                        textAlign: "left",
-                        transition: "all 0.2s ease",
+                        color: "#17345f",
                       }}
                     >
-                      <div
-                        style={{
-                          width: "105px",
-                          height: "52px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          background: "#ffffff",
-                          borderRadius: "8px",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <img
-                          src={item.logo}
-                          alt={`${item.name} logo`}
-                          style={{
-                            maxWidth: "100%",
-                            maxHeight: "100%",
-                            width: "auto",
-                            height: "auto",
-                            objectFit: "contain",
-                            display: "block",
-                          }}
-                        />
-                      </div>
+                      {item.name}
+                    </span>
 
+                    {network === item.id && (
                       <span
                         style={{
-                          flex: 1,
+                          marginLeft: "auto",
+                          color: "#1760b8",
+                          fontSize: "24px",
                         }}
                       >
-                        {item.name}
+                        ✓
                       </span>
-
-                      {selected && (
-                        <span
-                          style={{
-                            color: "#1557a6",
-                            fontSize: "22px",
-                            fontWeight: 900,
-                          }}
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                    )}
+                  </button>
+                ))}
               </div>
-            </div>
 
-            {/* NUMÉRO */}
-            <div style={{ marginTop: "30px" }}>
               <h2
                 style={{
                   fontSize: "18px",
-                  marginBottom: "15px",
+                  color: "#17345f",
+                  marginBottom: "16px",
                 }}
               >
-                2. Votre numéro Mobile Money
+                3. Votre numéro Mobile Money
               </h2>
 
               <input
                 type="tel"
                 value={phone}
-                onChange={(event) => setPhone(event.target.value)}
+                onChange={(event) =>
+                  setPhone(event.target.value)
+                }
                 placeholder="+243812345678"
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
-                  minHeight: "54px",
-                  padding: "0 16px",
+                  padding: "16px",
                   borderRadius: "12px",
-                  border: "1px solid #d9e1ec",
-                  outline: "none",
+                  border: "1px solid #cbd5e1",
                   fontSize: "16px",
-                  color: "#10284a",
+                  marginBottom: "8px",
                 }}
               />
 
               <p
                 style={{
-                  marginTop: "8px",
-                  color: "#667085",
+                  color: "#64748b",
                   fontSize: "13px",
-                  lineHeight: 1.5,
+                  marginBottom: "24px",
                 }}
               >
-                Utilisez le format international avec{" "}
-                <strong>+243</strong>.
+                Utilisez le format international avec
+                <strong> +243</strong>.
               </p>
-            </div>
+            </>
+          )}
 
-            {/* ERREUR */}
-            {error && (
-              <div
-                style={{
-                  marginTop: "20px",
-                  padding: "14px 16px",
-                  borderRadius: "10px",
-                  background: "#fff1f1",
-                  border: "1px solid #f3caca",
-                  color: "#b42318",
-                  fontSize: "14px",
-                  lineHeight: 1.5,
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            {/* BOUTON */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: "100%",
-                minHeight: "54px",
-                marginTop: "25px",
-                border: "none",
-                borderRadius: "12px",
-                background: loading ? "#8aa9cc" : "#1557a6",
-                color: "#ffffff",
-                fontSize: "16px",
-                fontWeight: 800,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              {loading
-                ? "Initialisation du paiement..."
-                : `Payer $${selectedPlan.price}`}
-            </button>
-          </form>
-        ) : (
-          /* SUCCÈS */
-          <div
-            style={{
-              marginTop: "30px",
-              padding: "25px",
-              borderRadius: "15px",
-              background: "#effaf3",
-              border: "1px solid #b7e1c3",
-              textAlign: "center",
-            }}
-          >
+          {paymentMethod === "card" && (
             <div
               style={{
-                fontSize: "42px",
-                marginBottom: "10px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "20px",
+                marginBottom: "24px",
               }}
             >
-              ✓
-            </div>
-
-            <h2
-              style={{
-                margin: 0,
-                color: "#16794a",
-              }}
-            >
-              Paiement initié
-            </h2>
-
-            <p
-              style={{
-                marginTop: "12px",
-                color: "#35634b",
-                lineHeight: 1.6,
-              }}
-            >
-              Votre demande de paiement a bien été envoyée.
-              <br />
-              Suivez les instructions de votre opérateur Mobile Money.
-            </p>
-
-            {chargeId && (
-              <p
+              <h2
                 style={{
-                  marginTop: "15px",
-                  fontSize: "13px",
-                  color: "#667085",
-                  wordBreak: "break-all",
+                  fontSize: "18px",
+                  color: "#17345f",
+                  marginTop: 0,
                 }}
               >
-                Référence : <strong>{chargeId}</strong>
-              </p>
-            )}
+                Paiement par carte
+              </h2>
 
-            <p
+              <p
+                style={{
+                  color: "#64748b",
+                  lineHeight: 1.6,
+                  marginBottom: 0,
+                }}
+              >
+                Après avoir cliqué sur le bouton
+                ci-dessous, vous serez redirigé vers
+                une page de paiement sécurisée pour
+                saisir les informations de votre carte.
+              </p>
+
+              <p
+                style={{
+                  color: "#475569",
+                  fontSize: "13px",
+                  marginBottom: 0,
+                }}
+              >
+                🔒 MedLib ne stocke pas les informations
+                de votre carte.
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div
               style={{
-                marginTop: "18px",
-                fontSize: "13px",
-                color: "#667085",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
+                color: "#dc2626",
+                padding: "14px",
+                borderRadius: "12px",
+                marginBottom: "18px",
               }}
             >
-              L'abonnement sera activé après confirmation du paiement.
-            </p>
-          </div>
-        )}
+              {error}
+            </div>
+          )}
 
-        <a
-          href={`/dashboard/subscription/checkout?plan=${planCode}`}
+          {success && (
+            <div
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                color: "#047857",
+                padding: "16px",
+                borderRadius: "12px",
+                marginBottom: "18px",
+              }}
+            >
+              <strong>
+                Paiement initié avec succès.
+              </strong>
+
+              <p
+                style={{
+                  marginBottom: 0,
+                }}
+              >
+                Votre abonnement sera activé après
+                confirmation du paiement.
+              </p>
+
+              {chargeId && (
+                <small>
+                  Transaction : {chargeId}
+                </small>
+              )}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              border: "none",
+              borderRadius: "12px",
+              padding: "17px",
+              background: loading
+                ? "#94a3b8"
+                : "#1760b8",
+              color: "#ffffff",
+              fontSize: "16px",
+              fontWeight: 800,
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
+            }}
+          >
+            {loading
+              ? "Traitement en cours..."
+              : paymentMethod === "card"
+              ? `Payer $${selectedPlan.price} par carte`
+              : `Payer $${selectedPlan.price}`}
+          </button>
+        </form>
+
+        <div
           style={{
-            display: "block",
-            marginTop: "22px",
             textAlign: "center",
-            color: "#3973b9",
-            textDecoration: "none",
-            fontSize: "14px",
-            fontWeight: 700,
+            marginTop: "24px",
           }}
         >
-          ← Retour
-        </a>
+          <a
+            href="/dashboard/subscription/checkout"
+            style={{
+              color: "#1760b8",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            ← Retour
+          </a>
+        </div>
       </div>
     </main>
   );
@@ -471,12 +646,9 @@ export default function PaymentPage() {
         <main
           style={{
             minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            display: "grid",
+            placeItems: "center",
             background: "#f5f7fb",
-            color: "#10284a",
-            fontFamily: "Arial, sans-serif",
           }}
         >
           Chargement du paiement...
@@ -486,4 +658,4 @@ export default function PaymentPage() {
       <PaymentContent />
     </Suspense>
   );
-}
+      }
