@@ -36,14 +36,12 @@ const networks = [
       "https://i0.wp.com/amref.org/wp-content/uploads/2017/10/airtel-money.png?fit=696%2C385&ssl=1",
   },
   {
-    {
-  id: "mpesa",
-  name: "M-Pesa",
-  logo:
-    "https://www.digicard.co.tz/images/payments/mpesa.png",
-},
+    id: "mpesa",
+    name: "M-Pesa",
+    logo:
+      "https://www.digicard.co.tz/images/payments/mpesa.png",
+  },
 ];
-
 function PaymentContent() {
   const searchParams = useSearchParams();
 
