@@ -1,36 +1,124 @@
-import Link from "next/link";
+"use client";
 
-type PageProps = {
-  searchParams: Promise<{
-    plan?: string;
-  }>;
-};
+import { useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
 
 const plans = {
   monthly: {
     name: "Mensuel",
-    price: "5$",
+    price: 5,
     duration: "30 jours",
   },
   semester: {
     name: "Semestriel",
-    price: "25$",
+    price: 25,
     duration: "6 mois",
   },
   annual: {
     name: "Annuel",
-    price: "45$",
+    price: 45,
     duration: "12 mois",
   },
 };
 
-export default async function PaymentPage({
-  searchParams,
-}: PageProps) {
-  const params = await searchParams;
+const networks = [
+  {
+    id: "orange",
+    name: "Orange Money",
+    icon: "🟠",
+  },
+  {
+    id: "airtel",
+    name: "Airtel Money",
+    icon: "🔴",
+  },
+  {
+    id: "mpesa",
+    name: "M-Pesa",
+    icon: "🔵",
+  },
+];
+
+export default function PaymentPage() {
+  const searchParams = useSearchParams();
+
+  const planCode = searchParams.get("plan") || "monthly";
 
   const selectedPlan =
-    plans[params.plan as keyof typeof plans] || plans.monthly;
+    plans[planCode as keyof typeof plans] || plans.monthly;
+
+  const [network, setNetwork] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [chargeId, setChargeId] = useState("");
+
+  async function handlePayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setError("");
+    setSuccess(false);
+    setChargeId("");
+
+    if (!network) {
+      setError("Veuillez sélectionner un moyen de paiement.");
+      return;
+    }
+
+    if (!phone.trim()) {
+      setError("Veuillez saisir votre numéro de téléphone.");
+      return;
+    }
+
+    if (!phone.startsWith("+243")) {
+      setError(
+        "Veuillez utiliser le format international, par exemple : +243812345678."
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/payments/malipo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan: planCode,
+          network,
+          phone: phone.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error || "Impossible d'initialiser le paiement."
+        );
+      }
+
+      const id =
+        result?.charge?.id ||
+        result?.charge?.data?.id ||
+        result?.charge?.charge_id ||
+        "";
+
+      setChargeId(id);
+      setSuccess(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur est survenue pendant le paiement."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main
@@ -42,7 +130,7 @@ export default async function PaymentPage({
     >
       <div
         style={{
-          maxWidth: "700px",
+          maxWidth: "720px",
           margin: "0 auto",
           background: "#ffffff",
           padding: "40px",
@@ -51,98 +139,283 @@ export default async function PaymentPage({
           boxShadow: "0 10px 30px rgba(25,45,80,0.08)",
         }}
       >
-        <p
-          style={{
-            color: "#3973b9",
-            fontWeight: 800,
-            letterSpacing: "0.1em",
-            textAlign: "center",
-          }}
-        >
-          MEDLIB PREMIUM
-        </p>
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{
+              color: "#3973b9",
+              fontWeight: 800,
+              letterSpacing: "0.1em",
+              margin: 0,
+            }}
+          >
+            MEDLIB PREMIUM
+          </p>
 
-        <h1
-          style={{
-            textAlign: "center",
-            marginTop: "10px",
-          }}
-        >
-          Choisissez votre moyen de paiement
-        </h1>
+          <h1
+            style={{
+              marginTop: "10px",
+              marginBottom: "10px",
+              fontSize: "28px",
+            }}
+          >
+            Paiement sécurisé
+          </h1>
 
+          <p
+            style={{
+              color: "#667085",
+              margin: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            Activez votre abonnement MedLib en quelques secondes.
+          </p>
+        </div>
+
+        {/* RÉCAPITULATIF */}
         <div
           style={{
             marginTop: "30px",
-            padding: "25px",
+            padding: "22px",
             background: "#f5f7fb",
             borderRadius: "15px",
           }}
         >
-          <p>
+          <p style={{ margin: 0 }}>
             <strong>Formule :</strong> {selectedPlan.name}
           </p>
 
           <p style={{ marginTop: "10px" }}>
-            <strong>Montant :</strong> {selectedPlan.price}
+            <strong>Montant :</strong> ${selectedPlan.price}
           </p>
 
-          <p style={{ marginTop: "10px" }}>
+          <p style={{ marginTop: "10px", marginBottom: 0 }}>
             <strong>Durée :</strong> {selectedPlan.duration}
           </p>
         </div>
 
-        <div
-          style={{
-            marginTop: "30px",
-            padding: "20px",
-            border: "1px solid #e1e7ef",
-            borderRadius: "15px",
-          }}
-        >
-          <h2
+        {!success ? (
+          <form onSubmit={handlePayment}>
+            {/* MOYENS DE PAIEMENT */}
+            <div style={{ marginTop: "30px" }}>
+              <h2
+                style={{
+                  fontSize: "18px",
+                  marginBottom: "15px",
+                }}
+              >
+                1. Choisissez votre moyen de paiement
+              </h2>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                }}
+              >
+                {networks.map((item) => {
+                  const selected = network === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setNetwork(item.id)}
+                      style={{
+                        width: "100%",
+                        minHeight: "60px",
+                        padding: "0 18px",
+                        borderRadius: "12px",
+                        border: selected
+                          ? "2px solid #1557a6"
+                          : "1px solid #d9e1ec",
+                        background: selected ? "#eef5ff" : "#ffffff",
+                        color: "#10284a",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        textAlign: "left",
+                      }}
+                    >
+                      <span style={{ fontSize: "22px" }}>
+                        {item.icon}
+                      </span>
+
+                      <span>{item.name}</span>
+
+                      {selected && (
+                        <span
+                          style={{
+                            marginLeft: "auto",
+                            color: "#1557a6",
+                            fontSize: "20px",
+                          }}
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* NUMÉRO */}
+            <div style={{ marginTop: "30px" }}>
+              <h2
+                style={{
+                  fontSize: "18px",
+                  marginBottom: "15px",
+                }}
+              >
+                2. Votre numéro Mobile Money
+              </h2>
+
+              <input
+                type="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                placeholder="+243812345678"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minHeight: "54px",
+                  padding: "0 16px",
+                  borderRadius: "12px",
+                  border: "1px solid #d9e1ec",
+                  outline: "none",
+                  fontSize: "16px",
+                  color: "#10284a",
+                }}
+              />
+
+              <p
+                style={{
+                  marginTop: "8px",
+                  color: "#667085",
+                  fontSize: "13px",
+                  lineHeight: 1.5,
+                }}
+              >
+                Utilisez le format international avec <strong>+243</strong>.
+              </p>
+            </div>
+
+            {/* ERREUR */}
+            {error && (
+              <div
+                style={{
+                  marginTop: "20px",
+                  padding: "14px 16px",
+                  borderRadius: "10px",
+                  background: "#fff1f1",
+                  border: "1px solid #f3caca",
+                  color: "#b42318",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* BOUTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                minHeight: "54px",
+                marginTop: "25px",
+                border: "none",
+                borderRadius: "12px",
+                background: loading ? "#8aa9cc" : "#1557a6",
+                color: "#ffffff",
+                fontSize: "16px",
+                fontWeight: 800,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              {loading
+                ? "Initialisation du paiement..."
+                : `Payer $${selectedPlan.price}`}
+            </button>
+          </form>
+        ) : (
+          /* SUCCÈS */
+          <div
             style={{
-              margin: 0,
-              fontSize: "18px",
+              marginTop: "30px",
+              padding: "25px",
+              borderRadius: "15px",
+              background: "#effaf3",
+              border: "1px solid #b7e1c3",
+              textAlign: "center",
             }}
           >
-            Moyens de paiement
-          </h2>
+            <div
+              style={{
+                fontSize: "42px",
+                marginBottom: "10px",
+              }}
+            >
+              ✓
+            </div>
 
-          <p
-            style={{
-              marginTop: "10px",
-              color: "#667085",
-              lineHeight: 1.6,
-            }}
-          >
-            Le paiement sécurisé sera connecté à cette étape.
-          </p>
+            <h2
+              style={{
+                margin: 0,
+                color: "#16794a",
+              }}
+            >
+              Paiement initié
+            </h2>
 
-          <button
-            type="button"
-            style={{
-              width: "100%",
-              minHeight: "52px",
-              marginTop: "20px",
-              border: "none",
-              borderRadius: "12px",
-              background: "#1557a6",
-              color: "#ffffff",
-              fontSize: "15px",
-              fontWeight: 800,
-              cursor: "pointer",
-            }}
-          >
-            Payer {selectedPlan.price}
-          </button>
-        </div>
+            <p
+              style={{
+                marginTop: "12px",
+                color: "#35634b",
+                lineHeight: 1.6,
+              }}
+            >
+              Votre demande de paiement a bien été envoyée.
+              <br />
+              Suivez les instructions de votre opérateur Mobile Money.
+            </p>
 
-        <Link
-          href={`/dashboard/subscription/checkout?plan=${params.plan || "monthly"}`}
+            {chargeId && (
+              <p
+                style={{
+                  marginTop: "15px",
+                  fontSize: "13px",
+                  color: "#667085",
+                  wordBreak: "break-all",
+                }}
+              >
+                Référence : <strong>{chargeId}</strong>
+              </p>
+            )}
+
+            <p
+              style={{
+                marginTop: "18px",
+                fontSize: "13px",
+                color: "#667085",
+              }}
+            >
+              L'abonnement sera activé après confirmation du paiement.
+            </p>
+          </div>
+        )}
+
+        <a
+          href={`/dashboard/subscription/checkout?plan=${planCode}`}
           style={{
             display: "block",
-            marginTop: "20px",
+            marginTop: "22px",
             textAlign: "center",
             color: "#3973b9",
             textDecoration: "none",
@@ -151,8 +424,8 @@ export default async function PaymentPage({
           }}
         >
           ← Retour
-        </Link>
+        </a>
       </div>
     </main>
   );
-                                                         }
+              }
