@@ -26,17 +26,20 @@ const networks = [
   {
     id: "orange",
     name: "Orange Money",
-    icon: "🟠",
+    logo:
+      "https://commons.wikimedia.org/wiki/Special:Redirect/file/Logo_Orange_Money.svg",
   },
   {
     id: "airtel",
     name: "Airtel Money",
-    icon: "🔴",
+    logo:
+      "https://i0.wp.com/amref.org/wp-content/uploads/2017/10/airtel-money.png?fit=696%2C385&ssl=1",
   },
   {
     id: "mpesa",
     name: "M-Pesa",
-    icon: "🔵",
+    logo:
+      "https://www.itnewsafrica.com/wp-content/uploads/2024/03/befunky_2024-2-3_11-53-13.png",
   },
 ];
 
@@ -197,7 +200,7 @@ function PaymentContent() {
 
         {!success ? (
           <form onSubmit={handlePayment}>
-            {/* MOYEN DE PAIEMENT */}
+            {/* MOYENS DE PAIEMENT */}
             <div style={{ marginTop: "30px" }}>
               <h2
                 style={{
@@ -224,9 +227,9 @@ function PaymentContent() {
                       onClick={() => setNetwork(item.id)}
                       style={{
                         width: "100%",
-                        minHeight: "60px",
-                        padding: "0 18px",
-                        borderRadius: "12px",
+                        minHeight: "76px",
+                        padding: "10px 18px",
+                        borderRadius: "14px",
                         border: selected
                           ? "2px solid #1557a6"
                           : "1px solid #d9e1ec",
@@ -235,24 +238,54 @@ function PaymentContent() {
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
-                        gap: "12px",
+                        gap: "18px",
                         fontSize: "15px",
                         fontWeight: 700,
                         textAlign: "left",
+                        transition: "all 0.2s ease",
                       }}
                     >
-                      <span style={{ fontSize: "22px" }}>
-                        {item.icon}
-                      </span>
+                      <div
+                        style={{
+                          width: "105px",
+                          height: "52px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          background: "#ffffff",
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <img
+                          src={item.logo}
+                          alt={`${item.name} logo`}
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            width: "auto",
+                            height: "auto",
+                            objectFit: "contain",
+                            display: "block",
+                          }}
+                        />
+                      </div>
 
-                      <span>{item.name}</span>
+                      <span
+                        style={{
+                          flex: 1,
+                        }}
+                      >
+                        {item.name}
+                      </span>
 
                       {selected && (
                         <span
                           style={{
-                            marginLeft: "auto",
                             color: "#1557a6",
-                            fontSize: "20px",
+                            fontSize: "22px",
+                            fontWeight: 900,
                           }}
                         >
                           ✓
@@ -264,7 +297,7 @@ function PaymentContent() {
               </div>
             </div>
 
-            {/* NUMÉRO DE TÉLÉPHONE */}
+            {/* NUMÉRO */}
             <div style={{ marginTop: "30px" }}>
               <h2
                 style={{
@@ -301,7 +334,8 @@ function PaymentContent() {
                   lineHeight: 1.5,
                 }}
               >
-                Utilisez le format international avec <strong>+243</strong>.
+                Utilisez le format international avec{" "}
+                <strong>+243</strong>.
               </p>
             </div>
 
@@ -323,7 +357,7 @@ function PaymentContent() {
               </div>
             )}
 
-            {/* BOUTON PAIEMENT */}
+            {/* BOUTON */}
             <button
               type="submit"
               disabled={loading}
@@ -346,7 +380,7 @@ function PaymentContent() {
             </button>
           </form>
         ) : (
-          /* PAIEMENT INITIÉ */
+          /* SUCCÈS */
           <div
             style={{
               marginTop: "30px",
@@ -453,4 +487,4 @@ export default function PaymentPage() {
       <PaymentContent />
     </Suspense>
   );
-        }
+}
