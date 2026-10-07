@@ -1,7 +1,8 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import type { FormEvent } from "react";
 
 const plans = {
   monthly: {
@@ -39,7 +40,7 @@ const networks = [
   },
 ];
 
-export default function PaymentPage() {
+function PaymentContent() {
   const searchParams = useSearchParams();
 
   const planCode = searchParams.get("plan") || "monthly";
@@ -196,7 +197,7 @@ export default function PaymentPage() {
 
         {!success ? (
           <form onSubmit={handlePayment}>
-            {/* MOYENS DE PAIEMENT */}
+            {/* MOYEN DE PAIEMENT */}
             <div style={{ marginTop: "30px" }}>
               <h2
                 style={{
@@ -263,7 +264,7 @@ export default function PaymentPage() {
               </div>
             </div>
 
-            {/* NUMÉRO */}
+            {/* NUMÉRO DE TÉLÉPHONE */}
             <div style={{ marginTop: "30px" }}>
               <h2
                 style={{
@@ -322,7 +323,7 @@ export default function PaymentPage() {
               </div>
             )}
 
-            {/* BOUTON */}
+            {/* BOUTON PAIEMENT */}
             <button
               type="submit"
               disabled={loading}
@@ -345,7 +346,7 @@ export default function PaymentPage() {
             </button>
           </form>
         ) : (
-          /* SUCCÈS */
+          /* PAIEMENT INITIÉ */
           <div
             style={{
               marginTop: "30px",
@@ -428,4 +429,28 @@ export default function PaymentPage() {
       </div>
     </main>
   );
-              }
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#f5f7fb",
+            color: "#10284a",
+            fontFamily: "Arial, sans-serif",
+          }}
+        >
+          Chargement du paiement...
+        </main>
+      }
+    >
+      <PaymentContent />
+    </Suspense>
+  );
+        }
