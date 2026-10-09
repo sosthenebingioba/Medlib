@@ -21,13 +21,33 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const { data: subscription } = await supabase
+  // Récupérer l'abonnement le plus récent de l'utilisateur.
+  const { data: subscriptions } = await supabase
     .from("subscriptions")
-    .select("status, starts_at, ends_at, plan_id")
+    .select("status, starts_at, expires_at, plan_id")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(10);
+
+  const now = Date.now();
+
+  // Chercher un abonnement réellement actif et non expiré.
+  const subscription =
+    subscriptions?.find((item) => {
+      const startsAt = item.starts_at
+        ? new Date(item.starts_at).getTime()
+        : 0;
+
+      const expiresAt = item.expires_at
+        ? new Date(item.expires_at).getTime()
+        : null;
+
+      return (
+        item.status === "active" &&
+        startsAt <= now &&
+        (expiresAt === null || expiresAt > now)
+      );
+    }) ?? null;
 
   let planName = "Aucun abonnement";
 
@@ -49,10 +69,13 @@ export default async function DashboardPage() {
     user.email?.split("@")[0] ||
     "Étudiant";
 
-  const isActive =
-    subscription?.status === "active" &&
-    (!subscription.ends_at ||
-      new Date(subscription.ends_at).getTime() > Date.now());
+  const isActive = Boolean(subscription);
+
+  const expirationDate = subscription?.expires_at
+    ? new Date(subscription.expires_at).toLocaleDateString(
+        "fr-FR"
+      )
+    : null;
 
   return (
     <main className="dashboard-shell">
@@ -87,10 +110,8 @@ export default async function DashboardPage() {
               <p>
                 {isActive
                   ? `Accès premium actif${
-                      subscription?.ends_at
-                        ? ` jusqu’au ${new Date(
-                            subscription.ends_at
-                          ).toLocaleDateString("fr-FR")}`
+                      expirationDate
+                        ? ` jusqu’au ${expirationDate}`
                         : ""
                     }.`
                   : "Abonnez-vous pour accéder aux cours premium."}
