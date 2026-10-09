@@ -37,22 +37,34 @@ export default async function ReaderPage({ params }: PageProps) {
     notFound();
   }
 
+  
   // Vérification de l'accès
   let hasAccess = course.access_type === "free";
 
   if (!hasAccess) {
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("id, status, ends_at")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .gt("ends_at", new Date().toISOString())
-      .order("ends_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const now = new Date().toISOString();
 
-    hasAccess = !!subscription;
+    const { data: subscriptions, error: subscriptionError } =
+      await supabase
+        .from("subscriptions")
+        .select("id, status, starts_at, expires_at")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .lte("starts_at", now)
+        .gt("expires_at", now)
+        .order("expires_at", { ascending: false })
+        .limit(1);
+
+    if (subscriptionError) {
+      console.error(
+        "Erreur de vérification de l'abonnement :",
+        subscriptionError.message
+      );
+    }
+
+    hasAccess = Boolean(subscriptions?.length);
   }
+  
 
   // Si le cours est premium et que l'utilisateur
   // n'a pas d'abonnement actif
