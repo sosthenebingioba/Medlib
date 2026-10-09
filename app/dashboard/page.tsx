@@ -21,7 +21,17 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  // Récupérer l'abonnement le plus récent de l'utilisateur.
+  // Réserver l'administration au compte propriétaire.
+  const isOwner =
+    user.id === "99bb7b97-6e94-4dff-b859-edbdafa69844";
+
+  const isAdmin =
+    isOwner || profile?.role === "admin";
+
+  if (isAdmin) {
+    redirect("/dashboard/admin");
+  }
+
   const { data: subscriptions } = await supabase
     .from("subscriptions")
     .select("status, starts_at, expires_at, plan_id")
@@ -31,7 +41,6 @@ export default async function DashboardPage() {
 
   const now = Date.now();
 
-  // Chercher un abonnement réellement actif et non expiré.
   const subscription =
     subscriptions?.find((item) => {
       const startsAt = item.starts_at
@@ -83,30 +92,21 @@ export default async function DashboardPage() {
         <header className="dashboard-header">
           <div>
             <p className="eyebrow">MEDLIB</p>
-
             <h1>Bonjour, {fullName} 👋</h1>
-
             <p className="dashboard-subtitle">
               Bienvenue dans votre espace étudiant.
             </p>
           </div>
-
           <LogoutButton />
         </header>
 
         <section className="dashboard-grid">
           <article className="dashboard-card dashboard-card-main">
             <div>
-              <span className="card-label">
-                Mon abonnement
-              </span>
-
+              <span className="card-label">Mon abonnement</span>
               <h2>
-                {isActive
-                  ? planName
-                  : "Aucun abonnement actif"}
+                {isActive ? planName : "Aucun abonnement actif"}
               </h2>
-
               <p>
                 {isActive
                   ? `Accès premium actif${
@@ -117,7 +117,6 @@ export default async function DashboardPage() {
                   : "Abonnez-vous pour accéder aux cours premium."}
               </p>
             </div>
-
             <span
               className={
                 isActive
@@ -131,13 +130,8 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">📚</span>
-
             <h3>Bibliothèque</h3>
-
-            <p>
-              Explorez les cours médicaux disponibles.
-            </p>
-
+            <p>Explorez les cours médicaux disponibles.</p>
             <Link
               href="/dashboard/library"
               className="dashboard-link"
@@ -148,13 +142,8 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">❤️</span>
-
             <h3>Favoris</h3>
-
-            <p>
-              Retrouvez vos cours enregistrés.
-            </p>
-
+            <p>Retrouvez vos cours enregistrés.</p>
             <span className="dashboard-link muted">
               Bientôt disponible
             </span>
@@ -162,13 +151,8 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">🕘</span>
-
             <h3>Historique</h3>
-
-            <p>
-              Reprenez vos dernières lectures.
-            </p>
-
+            <p>Reprenez vos dernières lectures.</p>
             <span className="dashboard-link muted">
               Bientôt disponible
             </span>
@@ -176,11 +160,8 @@ export default async function DashboardPage() {
 
           <article className="dashboard-card">
             <span className="card-icon">👤</span>
-
             <h3>Mon profil</h3>
-
             <p>{user.email}</p>
-
             <span className="dashboard-link muted">
               Statut : Actif
             </span>
@@ -190,20 +171,15 @@ export default async function DashboardPage() {
         {!isActive && (
           <section className="upgrade-card">
             <div>
-              <span className="eyebrow">
-                MEDLIB PREMIUM
-              </span>
-
+              <span className="eyebrow">MEDLIB PREMIUM</span>
               <h2>
                 Accédez à toute la bibliothèque médicale
               </h2>
-
               <p>
                 Choisissez une formule d’abonnement pour
                 débloquer les cours premium.
               </p>
             </div>
-
             <Link
               href="/dashboard/subscription"
               className="primary-button"
