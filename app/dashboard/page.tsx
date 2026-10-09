@@ -21,16 +21,6 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  // Réserver l'administration au compte propriétaire.
-  const isOwner =
-    user.id === "99bb7b97-6e94-4dff-b859-edbdafa69844";
-
-  const isAdmin =
-    isOwner || profile?.role === "admin";
-
-  if (isAdmin) {
-    redirect("/dashboard/admin");
-  }
 
   const { data: subscriptions } = await supabase
     .from("subscriptions")
