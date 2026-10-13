@@ -90,6 +90,14 @@ const { data: profile } = await supabase
             </div>
           </Link>
 
+<Link href="/dashboard/admin/users" className="admin-action">
+  <span>👥</span>
+  <div>
+    <strong>Utilisateurs</strong>
+    <small>Consulter les comptes étudiants</small>
+  </div>
+</Link>
+
           <Link href="/dashboard/library" className="admin-action">
             <span>📚</span>
             <div>
